@@ -4,11 +4,6 @@ import pandas as pd
 import plotly.express as px
 from st_aggrid import AgGrid
 
-# Obtener las credenciales de los secretos
-client_id = st.secrets["client_id"]
-client_secret = st.secrets["client_secret"]
-opencage_api_key = st.secrets["opencage_api_key"]
-
 # Funciones para obtener datos de Spotify
 def get_access_token(client_id, client_secret):
     auth_url = 'https://accounts.spotify.com/api/token'
@@ -40,7 +35,9 @@ def make_request(url, headers, params=None, max_retries=3, backoff_factor=1.0):
             response.raise_for_status()
     raise Exception(f"Failed to get a valid response after {max_retries} retries.")
 
-def get_artist_data(artist_name, client_id, client_secret):
+def get_artist_data(artist_name):
+    client_id = st.secrets["client_id"]
+    client_secret = st.secrets["client_secret"]
     access_token = get_access_token(client_id, client_secret)
     if not access_token:
         return None
@@ -127,7 +124,7 @@ def get_artist_data(artist_name, client_id, client_secret):
     geocode_url = "https://api.opencagedata.com/geocode/v1/json"
     geocode_params = {
         'q': location,
-        'key': opencage_api_key,
+        'key': st.secrets["opencage_api_key"],
         'limit': 1
     }
     geocode_response = make_request(geocode_url, {}, params=geocode_params)
@@ -150,16 +147,14 @@ def get_artist_data(artist_name, client_id, client_secret):
 # Interfaz de usuario con Streamlit
 st.title("Spotify Artist Data Explorer")
 
-client_id = st.text_input("Client ID", value='fced6aa8e6c84f49b80df73470fc36c7')
-client_secret = st.text_input("Client Secret", value='fe58d684f87c4a72861faafdb10a466a', type="password")
 artist_name = st.text_input("Enter Artist Name", value='Led Zeppelin')
 
 if st.button("Search"):
-    if not client_id or not client_secret or not artist_name:
-        st.error("Please provide all required inputs.")
+    if not artist_name:
+        st.error("Please provide the artist name.")
     else:
         with st.spinner('Fetching data...'):
-            data = get_artist_data(artist_name, client_id, client_secret)
+            data = get_artist_data(artist_name)
             if data:
                 df, artist, artist_location = data
                 st.session_state['df'] = df
